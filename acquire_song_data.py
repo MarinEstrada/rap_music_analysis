@@ -16,7 +16,7 @@ import pandas as pd
 
 # use as Ref
 # https://www.youtube.com/watch?v=WAmEZBEeNmg
-from requests import post # allows us to send post requests
+from requests import post, get # allows us to send post & get requests
 import json
 import base64 # allows us to send request as base64 object
 from dotenv import load_dotenv # to get our environment variables
@@ -29,6 +29,7 @@ secret = os.getenv('SPOTIFY_CLIENT_SECRET')
 # we will use client credentials workflow
 
 # step 1: get temporary aurhorization token
+# token acquired will be used in future headers to make requests
 # def get_token(client_id=cid, client_secret=secret):
 def get_token():
     auth_string = cid + ":" + secret # concatonate id and secret
@@ -46,14 +47,40 @@ def get_token():
     # Now: we ready to formulate request
     result = post(url, headers = headers, data=data) # jason data will be avail in field 'object' ie: result.content
     json_result = json.loads(result.content)
-    print(f"cid is :{cid}")
-    print(f"secret is :{secret}")
-    print(f"result is:\n{result}")
-    print(f"json_result is:\n{json_result}")
-    print()
+    # print(f"cid is :{cid}")
+    # print(f"secret is :{secret}")
+    # print(f"result is:\n{result}")
+    # print(f"json_result is:\n{json_result}")
+    # print()
     token = json_result["access_token"]
     return token
 
+# for any future requests to automatically be in right format
+# developer.spotify.com/console/get-search-item/
+def get_auth_header(token):
+    return {"Authorization" : "Bearer " + token}
+
+# developer.spotify.com/console/get-search-item/
+def search_for_artist(token, artist_name=None, track_name=None):
+    url = "https://api.spotify.com/v1/search"
+    headers = get_auth_header(token)
+
+    #need to construct query
+    # note type is a comma delimited list
+    # query = f"?q={artist_name}&type=artist&limit=1" #example for searching for artist
+    query = f"?q={track_name}&type=track&limit=1" #example for searching for track TESTING
+    # query = f"?q={artist_name}&type=artist,track&limit=1" #example for searching for artist &sing artist and track type
+    # query = f"?q={artist_name}&type=artist,track&limit=1" #example for searching for artist
+
+    query_url = url + query
+    result = get(query_url, headers=headers)
+    # json_result = json.loads(result.content)
+    json_result = json.loads(result.content)["tracks"]["items"]
+    if len(json_result) == 0:
+        print("track not found")
+        return None
+    # print(f"json_result is:\n{json_result}\n")
+    return json_result[0]
 
 # def find_track(artist=artist, song=song):
 
@@ -77,7 +104,21 @@ def main(zip_file = "rap_archive.zip", client_id=cid, client_secret=secret):
     #following new ref vid
     # print(f"cid: {cid}\nsecret: {secret}")
     token = get_token()
-    print(f"token is: {token}")
+    # print(f"token is: {token}")
+    # search_for_artist(token, artist_name="ACDC")
+    result = search_for_artist(token, track_name="Paint it Black")
+    # search_for_artist(token, artist_name="The Rolling Stones", track_name="Paint it Black")
+
+    print(f"result is:\n{result}")
+    print('\nhi')
+
+    if result != None:
+        print(f"artist is: {result['artists'][0]['name']}")
+        print(f"song is: {result['name']}")
+        print(f"song release date is: {result['album']['release_date']}")
+        print(f"song duration is: {result['duration_ms']}")
+
+
 
     # print(f"sp is of type {type(sp)} and is:\n{sp}")
 
