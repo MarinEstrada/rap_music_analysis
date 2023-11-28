@@ -11,6 +11,8 @@ from spotipy.oauth2 import SpotifyClientCredentials
 
 import numpy as np
 
+import time
+
 
 import pandas as pd
 
@@ -74,6 +76,7 @@ def search_for_artist(token, artist_name=None, track_name=None):
 
     query_url = url + query
     result = get(query_url, headers=headers)
+    print(f"result type is:{type(result)}\nresult is:\n{result}")
     # json_result = json.loads(result.content)
     json_result = json.loads(result.content)["tracks"]["items"]
     if len(json_result) == 0:
@@ -89,6 +92,34 @@ def search_for_artist(token, artist_name=None, track_name=None):
 #     let q = String.init(format:"artist:%@ track:%@",artist,song)
 #     return None
 
+def print_result(result):
+    if result != None:
+        print(f"artist is: {result['artists'][0]['name']}")
+        print(f"song is: {result['name']}")
+        print(f"song release date is: {result['album']['release_date']}")
+        print(f"song duration is: {result['duration_ms']}")
+    else:
+        print("Song not found")
+
+# get track info if correct artist
+def get_song_info(token = None, artist_name=None, track_name=None):
+    # time.sleep(10)
+    print('hi1')
+    result = search_for_artist(token, track_name=track_name)
+    print_result(result)
+    if result == None: #if no result do not count it
+        print('hi2')
+        return None, None
+    elif artist_name != result['artists'][0]['name']: # if artist name does not match do not count it
+        print('hi3')
+        return None, None
+    else:
+        # return release_date & duration
+        return result['album']['release_date'], result['duration_ms']
+    # print("done")
+    # return result['album']['release_date'], result['duration_ms']
+
+
 def main(zip_file = "rap_archive.zip", client_id=cid, client_secret=secret):
 
     # music_data = pd.read_csv(zip_file)
@@ -101,22 +132,40 @@ def main(zip_file = "rap_archive.zip", client_id=cid, client_secret=secret):
     # client_credentials_manager = SpotifyClientCredentials(client_id=cid, client_secret=secret)
     # sp = spotipy.Spotify(client_credentials_manager = client_credentials_manager)
     
-    #following new ref vid
-    # print(f"cid: {cid}\nsecret: {secret}")
+    # #following new ref vid
+    # # print(f"cid: {cid}\nsecret: {secret}")
+    # token = get_token()
+    # # print(f"token is: {token}")
+    # # search_for_artist(token, artist_name="ACDC")
+    # result = search_for_artist(token, track_name="Paint it Black")
+    # # search_for_artist(token, artist_name="The Rolling Stones", track_name="Paint it Black")
+
+    # # print(f"result is:\n{result}")
+    # # print('\nhi')
+
+    #STUFF THAT WORKS:
+
     token = get_token()
-    # print(f"token is: {token}")
-    # search_for_artist(token, artist_name="ACDC")
-    result = search_for_artist(token, track_name="Paint it Black")
-    # search_for_artist(token, artist_name="The Rolling Stones", track_name="Paint it Black")
+    # result = search_for_artist(token, track_name="Paint it Black")
+    # print_result(result)
 
-    print(f"result is:\n{result}")
-    print('\nhi')
+    # test pandas df
+    artist_list = ["The Rolling Stones", "The Rolling Stones", "The Beatles", "Blink182"]
+    song_list = ["Paint it Black", "Satisfaction", "Hey Jude", "The Rock Show"]
+    test_dict = {'artists': artist_list,
+                'songs': song_list}
+    test_df = pd.DataFrame(test_dict)
+    print(f"Test df is:\n{test_df}")
+    print(f"song list is length {len(song_list)}")
+    print(f"artist list is length {len(artist_list)}")
+    print(f"shape of test df is {test_df.shape}")
 
-    if result != None:
-        print(f"artist is: {result['artists'][0]['name']}")
-        print(f"song is: {result['name']}")
-        print(f"song release date is: {result['album']['release_date']}")
-        print(f"song duration is: {result['duration_ms']}")
+    #Using https://stackoverflow.com/questions/30026815/add-multiple-columns-to-pandas-dataframe-from-function as ref
+    # test_df[['release_date', 'duration_ms']] = test_df.apply(lambda item: pd.Series(get_song_info(token, item['artists'], item['songs'])), axis=1)
+    lambda_add_info = lambda item: pd.Series(get_song_info(token, item['artists'], item['songs']))
+    test_df[['release_date', 'duration_ms']] = test_df.apply(lambda_add_info, axis=1)
+
+    print(f"Improved test df is:\n{test_df}")
 
 
 
