@@ -110,7 +110,7 @@ def get_song_info(token = None, artist_name=None, track_name=None):
     if result == None: #if no result do not count it
         print('hi2')
         return None, None
-    elif artist_name != result['artists'][0]['name']: # if artist name does not match do not count it
+    elif artist_name.lower() != result['artists'][0]['name'].lower(): # if artist name does not match do not count it
         print('hi3')
         return None, None
     else:
@@ -120,18 +120,28 @@ def get_song_info(token = None, artist_name=None, track_name=None):
     # return result['album']['release_date'], result['duration_ms']
 
 
-def main(zip_file = "rap_archive.zip", client_id=cid, client_secret=secret):
+# def main(zip_file = "rap_archive.zip", client_id=cid, client_secret=secret):
+def main(zip_file = "new_rap_archive.zip", client_id=cid, client_secret=secret):
 
-    # music_data = pd.read_csv(zip_file)
-    # print(f"rap_data is:\n{music_data}")
+    music_data = pd.read_csv(zip_file)
+    print(f"rap_data is:\n{music_data}")
 
-    # using as reference
-    # https://towardsdatascience.com/extracting-song-data-from-the-spotify-api-using-python-b1e79388d50
+    songs_df = music_data.drop(columns=['extra','lyric','next lyric'])
+    songs_df = songs_df.drop_duplicates()# drop non-unique rows
+    print(f"rap_data with droped columns is:\n{songs_df}")
 
-    # #Authentication - without user
-    # client_credentials_manager = SpotifyClientCredentials(client_id=cid, client_secret=secret)
-    # sp = spotipy.Spotify(client_credentials_manager = client_credentials_manager)
-    
+    # artist_count = songs_df.groupby(['song']).agg('count')
+    artist_count = songs_df.groupby(['song']).count()
+    artist_count = artist_count.rename(columns={'artist':'artist_count'})
+    artist_count = artist_count[artist_count['artist_count'] == 1] #keep only if song has one artist
+    # artist_count = artist_count.reset_index()
+    print(f"grouped by df is\n{artist_count}")
+
+    songs_df = songs_df.set_index('song')
+    songs_df = songs_df.join(artist_count)
+    print(f"joined dfs is:\n{songs_df}")
+
+
     # #following new ref vid
     # # print(f"cid: {cid}\nsecret: {secret}")
     # token = get_token()
@@ -145,27 +155,27 @@ def main(zip_file = "rap_archive.zip", client_id=cid, client_secret=secret):
 
     #STUFF THAT WORKS:
 
-    token = get_token()
-    # result = search_for_artist(token, track_name="Paint it Black")
-    # print_result(result)
+    # token = get_token()
+    # # result = search_for_artist(token, track_name="Paint it Black")
+    # # print_result(result)
 
-    # test pandas df
-    artist_list = ["The Rolling Stones", "The Rolling Stones", "The Beatles", "Blink182"]
-    song_list = ["Paint it Black", "Satisfaction", "Hey Jude", "The Rock Show"]
-    test_dict = {'artists': artist_list,
-                'songs': song_list}
-    test_df = pd.DataFrame(test_dict)
-    print(f"Test df is:\n{test_df}")
-    print(f"song list is length {len(song_list)}")
-    print(f"artist list is length {len(artist_list)}")
-    print(f"shape of test df is {test_df.shape}")
+    # # test pandas df
+    # artist_list = ["The Rolling Stones", "The Rolling Stones", "The Beatles", "Blink182"]
+    # song_list = ["Paint it Black", "Satisfaction", "Hey Jude", "The Rock Show"]
+    # test_dict = {'artist': artist_list,
+    #             'song': song_list}
+    # test_df = pd.DataFrame(test_dict)
+    # print(f"Test df is:\n{test_df}")
+    # print(f"song list is length {len(song_list)}")
+    # print(f"artist list is length {len(artist_list)}")
+    # print(f"shape of test df is {test_df.shape}")
 
-    #Using https://stackoverflow.com/questions/30026815/add-multiple-columns-to-pandas-dataframe-from-function as ref
-    # test_df[['release_date', 'duration_ms']] = test_df.apply(lambda item: pd.Series(get_song_info(token, item['artists'], item['songs'])), axis=1)
-    lambda_add_info = lambda item: pd.Series(get_song_info(token, item['artists'], item['songs']))
-    test_df[['release_date', 'duration_ms']] = test_df.apply(lambda_add_info, axis=1)
+    # #Using https://stackoverflow.com/questions/30026815/add-multiple-columns-to-pandas-dataframe-from-function as ref
+    # # test_df[['release_date', 'duration_ms']] = test_df.apply(lambda item: pd.Series(get_song_info(token, item['artists'], item['songs'])), axis=1)
+    # lambda_add_info = lambda item: pd.Series(get_song_info(token, item['artist'], item['song']))
+    # test_df[['release_date', 'duration_ms']] = test_df.apply(lambda_add_info, axis=1)
 
-    print(f"Improved test df is:\n{test_df}")
+    # print(f"Improved test df is:\n{test_df}")
 
 
 
