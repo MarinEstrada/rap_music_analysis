@@ -76,7 +76,7 @@ def search_for_artist(token, artist_name=None, track_name=None):
 
     query_url = url + query
     result = get(query_url, headers=headers)
-    print(f"result type is:{type(result)}\nresult is:\n{result}\nresult code is: {result.status_code}")
+    # print(f"result type is:{type(result)}\nresult is:\n{result}\nresult code is: {result.status_code}")
     # json_result = json.loads(result.content)
     if result.status_code == 200:
         json_result = json.loads(result.content)["tracks"]["items"]
@@ -106,22 +106,27 @@ def print_result(result):
 
 # get track info if correct artist
 def get_song_info(token = None, artist_name=None, track_name=None):
+# def get_song_info(token = None, artist_name=None, track_name=None, artists_song_count = None):
     # time.sleep(10)
-    print('hi1')
+    # print('hi1')
     result, status_code = search_for_artist(token, track_name=track_name)
-    print_result(result)
+    # print_result(result)
     if status_code == 200:
         if result == None: #if no result do not count it
-            print('result is None')
+            # print('result is None')
+            print(f"{artist_name},{track_name},,,{status_code}")
             return None, None, status_code
         elif artist_name.lower() != result['artists'][0]['name'].lower(): # if artist name does not match do not count it
-            print('artist name did not match')
+            # print('artist name did not match')
+            print(f"{artist_name},{track_name},,,{status_code}")
             return None, None, status_code
         else:
-            print("yay!")
+            # print("yay!")
             # return release_date & duration
+            print(f"{artist_name},{track_name},{result['album']['release_date']},{result['duration_ms']},{status_code}")
             return result['album']['release_date'], result['duration_ms'], status_code
     else:
+        print(f"{artist_name},{track_name},,,{status_code}")
         return None, None, status_code
     # print("done")
     # return result['album']['release_date'], result['duration_ms']
@@ -131,7 +136,7 @@ def get_song_info(token = None, artist_name=None, track_name=None):
 def main(zip_file = "new_rap_archive.zip", client_id=cid, client_secret=secret):
 
     music_data = pd.read_csv(zip_file)
-    print(f"rap_data is:\n{music_data}")
+    # print(f"rap_data is:\n{music_data}")
 
     songs_df = music_data.drop(columns=['extra','lyric','next lyric'])
     songs_df = songs_df.drop_duplicates()# drop non-unique rows
@@ -154,15 +159,16 @@ def main(zip_file = "new_rap_archive.zip", client_id=cid, client_secret=secret):
     songs_df = songs_df.drop(columns=['artist_count'])
     # print(f"joined dfs is:\n{songs_df}")
 
-    #acquire how many songs per artist
-    song_count = songs_df.groupby(['artist']).count()
-    song_count = song_count.rename(columns={'song' : 'artists_song_count'}) #rename count of songs by artists
-    # print(f"song_count is:\n{song_count}")
-    songs_df = songs_df.set_index('artist')
-    # print(f"songs_df is:\n{songs_df}")
-    songs_df = songs_df.join(song_count)
-    songs_df = songs_df.reset_index()
-    print(f"joined dfs is:\n{songs_df}")
+    # #acquire how many songs per artist
+    # #THIS SHOULD BE DONE LAST
+    # song_count = songs_df.groupby(['artist']).count()
+    # song_count = song_count.rename(columns={'song' : 'artists_song_count'}) #rename count of songs by artists
+    # # print(f"song_count is:\n{song_count}")
+    # songs_df = songs_df.set_index('artist')
+    # # print(f"songs_df is:\n{songs_df}")
+    # songs_df = songs_df.join(song_count)
+    # songs_df = songs_df.reset_index()
+    # print(f"joined dfs is:\n{songs_df}")
     
     # cleaned df to its own seperate csv for reference
     songs_df.to_csv('df_for_analysis.csv.gz', index=False, compression='gzip')
@@ -202,8 +208,9 @@ def main(zip_file = "new_rap_archive.zip", client_id=cid, client_secret=secret):
     # test_df[['release_date', 'duration_ms','status_code']] = test_df.apply(lambda_add_info, axis=1)
     songs_df[['release_date', 'duration_ms', 'status_code']] = songs_df.apply(lambda_add_info, axis=1)
 
-    print(f"Improved test df is:\n{test_df}")
+    # print(f"Improved test df is:\n{test_df}")
 
+    # test_df.to_csv('data-1.csv.gz', index=False, compression='gzip')
     songs_df.to_csv('data-1.csv.gz', index=False, compression='gzip')
     # music_data.to_csv('test.csv.gz', index=False, compression='gzip')
 
