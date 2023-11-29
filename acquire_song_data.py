@@ -76,14 +76,17 @@ def search_for_artist(token, artist_name=None, track_name=None):
 
     query_url = url + query
     result = get(query_url, headers=headers)
-    print(f"result type is:{type(result)}\nresult is:\n{result}")
+    print(f"result type is:{type(result)}\nresult is:\n{result}\nresult code is: {result.status_code}")
     # json_result = json.loads(result.content)
-    json_result = json.loads(result.content)["tracks"]["items"]
-    if len(json_result) == 0:
-        print("track not found")
-        return None
-    # print(f"json_result is:\n{json_result}\n")
-    return json_result[0]
+    if result.status_code == 200:
+        json_result = json.loads(result.content)["tracks"]["items"]
+        if len(json_result) == 0:
+            print("track not found")
+            return None, result.status_code
+        # print(f"json_result is:\n{json_result}\n")
+        return json_result[0], result.status_code
+    else:
+        return None, result.status_code
 
 # def find_track(artist=artist, song=song):
 
@@ -105,17 +108,21 @@ def print_result(result):
 def get_song_info(token = None, artist_name=None, track_name=None):
     # time.sleep(10)
     print('hi1')
-    result = search_for_artist(token, track_name=track_name)
+    result, status_code = search_for_artist(token, track_name=track_name)
     print_result(result)
-    if result == None: #if no result do not count it
-        print('hi2')
-        return None, None
-    elif artist_name.lower() != result['artists'][0]['name'].lower(): # if artist name does not match do not count it
-        print('hi3')
-        return None, None
+    if status_code == 200:
+        if result == None: #if no result do not count it
+            print('result is None')
+            return None, None, status_code
+        elif artist_name.lower() != result['artists'][0]['name'].lower(): # if artist name does not match do not count it
+            print('artist name did not match')
+            return None, None, status_code
+        else:
+            print("yay!")
+            # return release_date & duration
+            return result['album']['release_date'], result['duration_ms'], status_code
     else:
-        # return release_date & duration
-        return result['album']['release_date'], result['duration_ms']
+        return None, None, status_code
     # print("done")
     # return result['album']['release_date'], result['duration_ms']
 
@@ -154,7 +161,11 @@ def main(zip_file = "new_rap_archive.zip", client_id=cid, client_secret=secret):
     songs_df = songs_df.set_index('artist')
     # print(f"songs_df is:\n{songs_df}")
     songs_df = songs_df.join(song_count)
+    songs_df = songs_df.reset_index()
     print(f"joined dfs is:\n{songs_df}")
+    
+    # cleaned df to its own seperate csv for reference
+    songs_df.to_csv('df_for_analysis.csv.gz', index=False, compression='gzip')
 
 
     # #following new ref vid
@@ -170,29 +181,30 @@ def main(zip_file = "new_rap_archive.zip", client_id=cid, client_secret=secret):
 
     #STUFF THAT WORKS:
 
-    # token = get_token()
-    # # result = search_for_artist(token, track_name="Paint it Black")
-    # # print_result(result)
+    token = get_token()
+    # result = search_for_artist(token, track_name="Paint it Black")
+    # print_result(result)
 
-    # # test pandas df
-    # artist_list = ["The Rolling Stones", "The Rolling Stones", "The Beatles", "Blink182"]
-    # song_list = ["Paint it Black", "Satisfaction", "Hey Jude", "The Rock Show"]
-    # test_dict = {'artist': artist_list,
-    #             'song': song_list}
-    # test_df = pd.DataFrame(test_dict)
+    # test pandas df
+    artist_list = ["The Rolling Stones", "The Rolling Stones", "The Beatles", "Blink182"]
+    song_list = ["Paint it Black", "Satisfaction", "Hey Jude", "The Rock Show"]
+    test_dict = {'artist': artist_list,
+                'song': song_list}
+    test_df = pd.DataFrame(test_dict)
     # print(f"Test df is:\n{test_df}")
     # print(f"song list is length {len(song_list)}")
     # print(f"artist list is length {len(artist_list)}")
     # print(f"shape of test df is {test_df.shape}")
 
-    # #Using https://stackoverflow.com/questions/30026815/add-multiple-columns-to-pandas-dataframe-from-function as ref
-    # # test_df[['release_date', 'duration_ms']] = test_df.apply(lambda item: pd.Series(get_song_info(token, item['artists'], item['songs'])), axis=1)
-    # lambda_add_info = lambda item: pd.Series(get_song_info(token, item['artist'], item['song']))
-    # test_df[['release_date', 'duration_ms']] = test_df.apply(lambda_add_info, axis=1)
+    #Using https://stackoverflow.com/questions/30026815/add-multiple-columns-to-pandas-dataframe-from-function as ref
+    # test_df[['release_date', 'duration_ms']] = test_df.apply(lambda item: pd.Series(get_song_info(token, item['artists'], item['songs'])), axis=1)
+    lambda_add_info = lambda item: pd.Series(get_song_info(token, item['artist'], item['song']))
+    # test_df[['release_date', 'duration_ms','status_code']] = test_df.apply(lambda_add_info, axis=1)
+    songs_df[['release_date', 'duration_ms', 'status_code']] = songs_df.apply(lambda_add_info, axis=1)
 
-    # print(f"Improved test df is:\n{test_df}")
+    print(f"Improved test df is:\n{test_df}")
 
-    songs_df.to_csv('data.csv.gz', index=False, compression='gzip')
+    songs_df.to_csv('data-1.csv.gz', index=False, compression='gzip')
     # music_data.to_csv('test.csv.gz', index=False, compression='gzip')
 
 
