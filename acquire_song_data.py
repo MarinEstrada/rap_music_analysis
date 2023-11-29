@@ -131,14 +131,27 @@ def main(zip_file = "new_rap_archive.zip", client_id=cid, client_secret=secret):
     print(f"rap_data with droped columns is:\n{songs_df}")
 
     # artist_count = songs_df.groupby(['song']).agg('count')
+
+    # Remove songs that have more than 1 artist (song repitition/covers)
     artist_count = songs_df.groupby(['song']).count()
     artist_count = artist_count.rename(columns={'artist':'artist_count'})
     artist_count = artist_count[artist_count['artist_count'] == 1] #keep only if song has one artist
     # artist_count = artist_count.reset_index()
     print(f"grouped by df is\n{artist_count}")
 
+    #join count and songs to remove
     songs_df = songs_df.set_index('song')
     songs_df = songs_df.join(artist_count)
+    songs_df = songs_df.dropna() #keep the songs that had only one artist
+    songs_df = songs_df.reset_index()
+    songs_df = songs_df.drop(columns=['artist_count'])
+    print(f"joined dfs is:\n{songs_df}")
+
+    #acquire how many songs per artist
+    song_count = songs_df.groupby(['artist']).count()
+    print(f"song_count is:\n{song_count}")
+    songs_df = songs_df.set_index('artist')
+    songs_df = songs_df.join(song_count)
     print(f"joined dfs is:\n{songs_df}")
 
 
@@ -177,9 +190,10 @@ def main(zip_file = "new_rap_archive.zip", client_id=cid, client_secret=secret):
 
     # print(f"Improved test df is:\n{test_df}")
 
+    songs_df.to_csv('data.csv.gz', index=False, compression='gzip')
+    # music_data.to_csv('test.csv.gz', index=False, compression='gzip')
 
 
-    # print(f"sp is of type {type(sp)} and is:\n{sp}")
 
     # TODO: access spotify API
 
