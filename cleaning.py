@@ -6,9 +6,9 @@ import pandas as pd
 import cleaning
 
 # Splits lyric column by word
-def tokenize(df):
-    df['lyric'] = df['lyric'].apply(lambda x: x.split())
-    df = df.explode('lyric')
+def tokenize(df, by):
+    df[by] = df[by].apply(lambda x: x.split())
+    df = df.explode(by)
     return df
 
 # Joins lyric column after grouping by every other column
@@ -39,13 +39,11 @@ covers = duplicated_songs
 def duplicated_titles(df):
     return duplicates(df, ['song'])
 
-def export_original_songs(rap_archive = "rap_archive.zip", output_file = "original_songs.csv.gz"):
-    # read lyric data
-    lyric_data = pd.read_csv(rap_archive)
-    lyric_data = lyric_data.drop('next lyric', axis=1)
-    lyric_data = lyric_data.drop(lyric_data.columns[0], axis=1)
+def export_original_songs(input_file, output_file):
+    lyric_data = pd.read_csv(input_file)
+    lyric_data = lyric_data.drop(lyric_data.columns[0], 'next lyric', axis=1)
 
-    # unique songs
-    songs = join_lyrics(lyric_data)
-    original_songs = drop_covers(songs)
-    original_songs.to_csv(output_file, index=False, compression='gzip')
+    song_data = join_lyrics(lyric_data)
+    
+    originals_data = drop_covers(song_data)
+    originals_data.to_csv(output_file, index=False, compression='gzip')
