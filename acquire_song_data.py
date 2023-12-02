@@ -105,7 +105,7 @@ def print_result(result):
         print("Song not found")
 
 # get track info if correct artist
-def get_song_info(token = None, artist_name=None, track_name=None):
+def get_song_info(token = None, artist_name=None, track_name=None, print_output=False):
 # def get_song_info(token = None, artist_name=None, track_name=None, artists_song_count = None):
     # time.sleep(10)
     # print('hi1')
@@ -114,28 +114,28 @@ def get_song_info(token = None, artist_name=None, track_name=None):
     if status_code == 200:
         if result == None: #if no result do not count it
             # print('result is None')
-            print(f"{artist_name},{track_name},,,{status_code}")
+            if print_output: print(f"{artist_name},{track_name},,,{status_code}")
             return None, None, status_code
         elif artist_name.lower() != result['artists'][0]['name'].lower(): # if artist name does not match do not count it
             # print('artist name did not match')
-            print(f"{artist_name},{track_name},,,{status_code}")
+            if print_output: print(f"{artist_name},{track_name},,,{status_code}")
             return None, None, status_code
         else:
             # print("yay!")
             # return release_date & duration
-            print(f"{artist_name},{track_name},{result['album']['release_date']},{result['duration_ms']},{status_code}")
+            if print_output: print(f"{artist_name},{track_name},{result['album']['release_date']},{result['duration_ms']},{status_code}")
             return result['album']['release_date'], result['duration_ms'], status_code
     else:
-        print(f"{artist_name},{track_name},,,{status_code}")
+        if print_output: print(f"{artist_name},{track_name},,,{status_code}")
         return None, None, status_code
     # print("done")
     # return result['album']['release_date'], result['duration_ms']
 
 
-# def main(zip_file = "rap_archive.zip", client_id=cid, client_secret=secret):
-def main(zip_file = "new_rap_archive.zip", client_id=cid, client_secret=secret):
+# def main(zip_file = "new_rap_archive.zip", client_id=cid, client_secret=secret):
+def main(input_file=None, output_file=None, client_id=cid, client_secret=secret, print_output=False):
 
-    music_data = pd.read_csv(zip_file)
+    music_data = pd.read_csv(input_file)
     # print(f"rap_data is:\n{music_data}")
 
     songs_df = music_data.drop(columns=['extra','lyric','next lyric'])
@@ -204,14 +204,15 @@ def main(zip_file = "new_rap_archive.zip", client_id=cid, client_secret=secret):
 
     #Using https://stackoverflow.com/questions/30026815/add-multiple-columns-to-pandas-dataframe-from-function as ref
     # test_df[['release_date', 'duration_ms']] = test_df.apply(lambda item: pd.Series(get_song_info(token, item['artists'], item['songs'])), axis=1)
-    lambda_add_info = lambda item: pd.Series(get_song_info(token, item['artist'], item['song']))
+    lambda_add_info = lambda item: pd.Series(get_song_info(token, item['artist'], item['song'], print_output))
     # test_df[['release_date', 'duration_ms','status_code']] = test_df.apply(lambda_add_info, axis=1)
     songs_df[['release_date', 'duration_ms', 'status_code']] = songs_df.apply(lambda_add_info, axis=1)
 
     # print(f"Improved test df is:\n{test_df}")
 
     # test_df.to_csv('data-1.csv.gz', index=False, compression='gzip')
-    songs_df.to_csv('data-1.csv.gz', index=False, compression='gzip')
+    # songs_df.to_csv('data-1.csv.gz', index=False, compression='gzip')
+    songs_df.to_csv(output_file, index=False, compression='gzip')
     # music_data.to_csv('test.csv.gz', index=False, compression='gzip')
 
 
@@ -223,6 +224,15 @@ def main(zip_file = "new_rap_archive.zip", client_id=cid, client_secret=secret):
     # TODO: actually perform analysis
 
 if __name__ == '__main__':
-    # cid = sys.argv[1]
-    # secret = sys.argv[2]
-    main(client_id=cid, client_secret=secret)
+    if len(sys.argv) < 3:
+        print("please add input and output files to command,")
+        print("input file should be csv (compressed or uncompress), output file should be COMPRESSED _.csv.gz")
+        print("ie:\npython3 acquire_song_data.py <input_file> <output_file> {print}")
+        exit()
+    input_file = sys.argv[1]
+    output_file = sys.argv[2]
+    print_output = False
+    if len(sys.argv) >= 4:
+        if sys.argv[3] == 'print':
+            print_output = True
+    main(input_file=input_file, output_file=output_file, client_id=cid, client_secret=secret, print_output=print_output)
