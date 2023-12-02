@@ -18,6 +18,15 @@ def main(rap_archive = "rap_archive.zip", data_acquired = "data-1.csv.gz"):
     # TODO: access spotify API
 
     # TODO: join API data and music_data
+    
+    # DF: One song per row
+    songs = music_data.drop('next lyric', axis=1)
+    songs = songs.groupby(['song_id', 'artist', 'song']).agg({'lyric': ' '.join})
+    
+    # DF: One word per row
+    words = music_data.drop('next lyric', axis=1)
+    words['lyric'] = words['lyric'].apply(lambda x: x.split())
+    words = words.explode('lyric')
 
     # TODO: actually perform analysis
 
