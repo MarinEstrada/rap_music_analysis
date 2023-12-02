@@ -42,7 +42,8 @@ def main(rap_archive = "rap_archive.zip", data_acquired = "data-1.csv.gz"):
 
     # unique songs
     songs = join_lyrics(lyric_data)
-    unique_songs = clean_duplicates.drop_covers(songs)
+    original_songs = clean_duplicates.drop_covers(songs)
+    original_songs.to_csv('original_songs.csv')
 
     # TODO: merge API data and music_data
     data = music_data.merge(lyric_data, on=['song','artist'], how='inner')
