@@ -17,16 +17,23 @@ def main(rap_archive = "rap_archive.zip", data_acquired = "data-1.csv.gz"):
 
     # TODO: access spotify API
 
-    # TODO: join API data and music_data
+    # read lyric data
+    lyric_data = pd.read_csv(rap_archive)
+    lyric_data = lyric_data.drop('next lyric', axis=1)
+    lyric_data = lyric_data.drop(lyric_data.columns[0], axis=1)
+
+    # TODO: merge API data and music_data
+    music_data = music_data.merge(lyric_data, on=['song','artist'], how='inner')
     
     # DF: One song per row
-    songs = music_data.drop('next lyric', axis=1)
-    songs = songs.groupby(['song_id', 'artist', 'song']).agg({'lyric': ' '.join})
-    
+    by_song = lyric_data.groupby(['artist', 'song']).agg({'lyric': ' '.join})
+    # print(by_song)
+
     # DF: One word per row
-    words = music_data.drop('next lyric', axis=1)
-    words['lyric'] = words['lyric'].apply(lambda x: x.split())
-    words = words.explode('lyric')
+    by_word =lyric_data
+    by_word['lyric'] = by_word['lyric'].apply(lambda x: x.split())
+    by_word = by_word.explode('lyric')
+    # print(by_word)
 
     # TODO: actually perform analysis
 
