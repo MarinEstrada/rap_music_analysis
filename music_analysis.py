@@ -96,10 +96,10 @@ def main(rap_archive = "rap_archive.zip", api_data = "data-1.csv.gz", output_fil
     song_data['words per minute'] = wpm(song_data, 'word count')
     song_data['unique words per minute'] = wpm(song_data, 'unique word count')
     # song_data = song_data.sort_values('words per minute')
+    song_data = song_data[song_data['words per minute'] <= 450] # prune songs over 450 words/min
     # print(f"song_data is:\n{song_data}")
 
-    # print(f"song_data is:\n{song_data}")
-    song_data = song_data[song_data['words per minute'] <= 450] # prune songs over 450 words/min
+    # adri code:
     # song_data = tokenize_lyrics(song_data, 'lyric', 'tokenized_lyric')
     song_data['tokenized'] = song_data.apply(lambda item: word_tokenize(item['lyric']), axis=1) #tokenization of lyrics as seperate column
     print(f"song_data is:\n{song_data}")
@@ -107,15 +107,6 @@ def main(rap_archive = "rap_archive.zip", api_data = "data-1.csv.gz", output_fil
     print(f"song_data is:\n{song_data}")
     song_data['unique_words'] = song_data.apply(lambda item: set(item['tokenized']), axis=1) #by changing list of tokens to set we get unique words
     print(f"song_data is:\n{song_data}")
-
-
-    song_data.to_csv('adri_output.csv')
-    exit()
-
-    print(f"song_data is:\n{song_data}")
-
-    # one row per word
-    
 
 if __name__ == '__main__':
     if len(sys.argv) <2: 
