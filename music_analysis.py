@@ -71,6 +71,7 @@ def main(rap_archive = "rap_archive.zip", api_data = "data-1.csv.gz", output_fil
     music_data = music_data.drop('status_code', axis=1)
     song_data = music_data.merge(originals_data, on=['song','artist'], how='inner')
     song_data['minutes'] = song_data['duration_ms'] / 60000
+
     lines_data = song_data
     # print(f"song_data is:\n{song_data}")
 
