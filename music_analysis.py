@@ -22,15 +22,15 @@ def wpm(df, word_column, minutes_column):
     return df
 
 
-def main(rap_archive = "rap_archive.zip", data_acquired = "data-1.csv.gz"):
+def main(rap_archive = "rap_archive.zip", api_data = "data-1.csv.gz", output_file=None):
 
     # music_data = pd.read_csv(rap_archive)
-    music_data = pd.read_csv(data_acquired)
-    # print(f"data_acquired is:\n{music_data}")
+    music_data = pd.read_csv(api_data)
+    # print(f"api_data is:\n{music_data}")
     music_data = music_data[music_data['status_code']==200]
-    # print(f"data_acquired with succesful API calls:\n{music_data}")
+    # print(f"api_data with succesful API calls:\n{music_data}")
     music_data = music_data.dropna()
-    # print(f"valid data_acquired is:\n{music_data}")
+    # print(f"valid api_data is:\n{music_data}")
 
     # TODO: access spotify API
 
@@ -45,28 +45,42 @@ def main(rap_archive = "rap_archive.zip", data_acquired = "data-1.csv.gz"):
     music_data = music_data.drop('status_code', axis=1)
     song_data = music_data.merge(originals_data, on=['song','artist'], how='inner')
     song_data['minutes'] = song_data['duration_ms'] / 60000
+    print(f"song_data is:\n{song_data}")
 
     # TODO: actually perform analysis
     song_data = count_unique(song_data, 'lyric', 'unique word count')
     song_data = wpm(song_data,'unique word count', 'minutes')
+    print(f"song_data is:\n{song_data}")
 
     wordy_songs = song_data[song_data['unique word count per minute'] > 450]
     wordy_songs = wordy_songs.sort_values(by='unique word count per minute',ascending=True)
     y = wordy_songs['unique word count per minute']
     x = wordy_songs['release_date']
     plt.scatter(x,y)
-    plt.show()
-    wordy_songs.to_csv('output_boey.csv')
+    # plt.show()
+    # wordy_songs.to_csv('output_boey.csv')
 
     exit()
 
     song_data['unique_words'] = song_data['lyric'].apply(unique_words)
     song_data['words'] = len(song_data['lyric'].apply(lambda x: x.split()))
     song_data['words per minute'] = song_data['words'] / song_data['minutes']
-    print(song_data)
+    print(f"song_data is:\n{song_data}")
 
     # one row per word
     
 
 if __name__ == '__main__':
-    main()
+    if len(sys.argv) <2: 
+        main() # no arguments provided, go normal
+    else:
+        if len(sys.argv) < 3:
+            print("please add inputs and optional output files to command,")
+            print("input file should be csv (compressed or uncompress), output file should be COMPRESSED _.csv.gz")
+            print("ie:\npython3 music_analysis.py <input_raparchive> <input_data acquired> {<output_file>}")
+            exit()
+        rap_archive = sys.argv[1]
+        api_acquired = sys.argv[2]
+        if len(sys.argv) >= 4: output_file = sys.argv[3]
+        else: output_file = None
+        main(rap_archive=rap_archive, api_acquired=api_acquired, output_file=output_file)
