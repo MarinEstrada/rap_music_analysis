@@ -10,6 +10,7 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 nltk.download('stopwords')
+nltk.download('punkt')
 stopwords_eng = set(stopwords.words('english')) # as shown in https://www.geeksforgeeks.org/removing-stop-words-nltk-python/
 
 # Splits string by whitespace
@@ -19,7 +20,7 @@ split_ufunc = np.frompyfunc(split, 1, 1)
 
 # Uses ufunc to tokenize lyrics and put one token per row
 def tokenize(song_data):
-    words = song_data
+    words = copy.deepcopy(song_data)
     words['lyric'] = split_ufunc(words['lyric'])
     words = words.explode('lyric')
     return words
@@ -70,6 +71,7 @@ def main(rap_archive = "rap_archive.zip", api_data = "data-1.csv.gz", output_fil
     music_data = music_data.drop('status_code', axis=1)
     song_data = music_data.merge(originals_data, on=['song','artist'], how='inner')
     song_data['minutes'] = song_data['duration_ms'] / 60000
+    lines_data = song_data
     # print(f"song_data is:\n{song_data}")
 
     # TODO: actually perform analysis
@@ -107,6 +109,10 @@ def main(rap_archive = "rap_archive.zip", api_data = "data-1.csv.gz", output_fil
     print(f"song_data is:\n{song_data}")
     song_data['unique_words'] = song_data.apply(lambda item: set(item['tokenized']), axis=1) #by changing list of tokens to set we get unique words
     print(f"song_data is:\n{song_data}")
+
+    # boey code:
+    print(lines_data)
+
 
 if __name__ == '__main__':
     if len(sys.argv) <2: 
