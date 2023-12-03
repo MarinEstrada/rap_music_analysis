@@ -112,4 +112,4 @@ if __name__ == '__main__':
         api_acquired = sys.argv[2]
         if len(sys.argv) >= 4: output_file = sys.argv[3]
         else: output_file = None
-        main(rap_archive=rap_archive, api_acquired=api_acquired, output_file=output_file)
+        main(rap_archive=rap_archive, api_data=api_acquired, output_file=output_file)
