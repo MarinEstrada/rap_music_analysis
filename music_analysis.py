@@ -5,26 +5,37 @@ import numpy as np
 import pandas as pd
 import cleaning
 import matplotlib.pyplot as plt
+import copy
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 nltk.download('stopwords')
+nltk.download('punkt')
 stopwords_eng = set(stopwords.words('english')) # as shown in https://www.geeksforgeeks.org/removing-stop-words-nltk-python/
 
-# Sorts by release date (old to new)
-def sort(df):
-    df = df.sort_values('release_date', ascending=True)
-    return df
+# Splits string by whitespace
+def split(text):
+    return text.split()
+split_ufunc = np.frompyfunc(split, 1, 1)
 
-# Adds a column with the number of unique words in the 'by' column
-def count_unique(df, by, count_name):
-    df[count_name] = df[by].apply(lambda x: len(set(x.split())))
-    return df
+# Uses ufunc to tokenize lyrics and put one token per row
+def tokenize(song_data):
+    words = copy.deepcopy(song_data)
+    words['lyric'] = split_ufunc(words['lyric'])
+    words = words.explode('lyric')
+    return words
 
-# Adds a column with the word_column divided by the minutes_column
-def wpm(df, word_column, minutes_column):
-    df[word_column + ' per minute'] = df[word_column] / df[minutes_column]
-    return df
+# Puts only unique words per song on a new row
+def get_unique_words(song_data):
+    words = tokenize(copy.deepcopy(song_data))
+    words['unique word count'] = np.ones(words.shape[0])
+    cols = [c for c in words.columns if c != 'unique word count']
+    unique_words = words.groupby(cols, as_index=False).agg({'unique word count':'sum'})
+    return unique_words
+
+# Divides a col by the minutes column
+def wpm(df, col):
+    return df[col] / df['minutes']
 
 # takes list of tokens and removes stopwords
 def stop_word_removal(tokens):
@@ -60,24 +71,38 @@ def main(rap_archive = "rap_archive.zip", api_data = "data-1.csv.gz", output_fil
     music_data = music_data.drop('status_code', axis=1)
     song_data = music_data.merge(originals_data, on=['song','artist'], how='inner')
     song_data['minutes'] = song_data['duration_ms'] / 60000
+
+    lines_data = song_data
     # print(f"song_data is:\n{song_data}")
 
     # TODO: actually perform analysis
-    song_data = count_unique(song_data, 'lyric', 'unique word count')
-    song_data = wpm(song_data,'unique word count', 'minutes')
+
+    # boey code: one row per word or unique word
+    words = tokenize(song_data)
+    unique_words = get_unique_words(words)
+    # print(f"words dataframe is:\n{words}")
+    # print(f"unique_words dataframe is:\n{unique_words}")
+
+    # boey code: count words
+    word_count = words.groupby([c for c in words.columns if c != 'lyric'], as_index=False).count()
+    word_count = word_count.rename(columns={'lyric':'word count'})
+    song_data = song_data.merge(word_count)
     # print(f"song_data is:\n{song_data}")
 
-
-    wordy_songs = song_data[song_data['unique word count per minute'] > 450]
-    wordy_songs = wordy_songs.sort_values(by='unique word count per minute',ascending=True)
-    y = wordy_songs['unique word count per minute']
-    x = wordy_songs['release_date']
-    plt.scatter(x,y)
-    # plt.show()
-    # wordy_songs.to_csv('output_boey.csv')
-
+    # boey code: count unique words
+    unique_word_count = words.groupby([c for c in words.columns if c != 'lyric'], as_index=False).agg({'lyric':'nunique'})
+    unique_word_count = unique_word_count.rename(columns={'lyric':'unique word count'})
+    song_data = song_data.merge(unique_word_count)
     # print(f"song_data is:\n{song_data}")
-    song_data = song_data[song_data['unique word count per minute'] <= 450] # prune songs over 450 words/min
+
+    # boey code: words and unique words per minute
+    song_data['words per minute'] = wpm(song_data, 'word count')
+    song_data['unique words per minute'] = wpm(song_data, 'unique word count')
+    # song_data = song_data.sort_values('words per minute')
+    song_data = song_data[song_data['words per minute'] <= 450] # prune songs over 450 words/min
+    # print(f"song_data is:\n{song_data}")
+
+    # adri code:
     # song_data = tokenize_lyrics(song_data, 'lyric', 'tokenized_lyric')
     song_data['tokenized'] = song_data.apply(lambda item: word_tokenize(item['lyric']), axis=1) #tokenization of lyrics as seperate column
     print(f"song_data is:\n{song_data}")
@@ -86,18 +111,9 @@ def main(rap_archive = "rap_archive.zip", api_data = "data-1.csv.gz", output_fil
     song_data['unique_words'] = song_data.apply(lambda item: set(item['tokenized']), axis=1) #by changing list of tokens to set we get unique words
     print(f"song_data is:\n{song_data}")
 
+    # boey code:
+    print(lines_data)
 
-    song_data.to_csv('adri_output.csv')
-    exit()
-
-    #boey code
-    song_data['unique_words'] = song_data['lyric'].apply(unique_words)
-    song_data['words'] = len(song_data['lyric'].apply(lambda x: x.split()))
-    song_data['words per minute'] = song_data['words'] / song_data['minutes']
-    print(f"song_data is:\n{song_data}")
-
-    # one row per word
-    
 
 if __name__ == '__main__':
     if len(sys.argv) <2: 
