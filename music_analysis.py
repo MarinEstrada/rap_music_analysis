@@ -26,8 +26,8 @@ def tokenize(song_data):
     return words
 
 # Puts only unique words per song on a new row
-def get_unique_words(song_data):
-    words = tokenize(copy.deepcopy(song_data))
+def get_unique_words(words_data):
+    words = copy.deepcopy(words_data)
     words['unique word count'] = np.ones(words.shape[0])
     cols = [c for c in words.columns if c != 'unique word count']
     unique_words = words.groupby(cols, as_index=False).agg({'unique word count':'sum'})
