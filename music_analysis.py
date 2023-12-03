@@ -111,14 +111,17 @@ def main(rap_archive = "rap_archive.zip", api_data = "data-1.csv.gz", output_fil
     song_data['unique_words'] = song_data.apply(lambda item: set(item['tokenized']), axis=1) #by changing list of tokens to set we get unique words
     # print(f"song_data is:\n{song_data}")
 
-    # boey code: most frequent words
+    exit()
+    # boey code: most frequent content words
     percentile = 80
-    most_frequent_words = unique_words.groupby([c for c in unique_words.columns if c not in ['lyric','unique word count']], as_index=False).agg({'unique word count':'max'})
-    most_frequent_words = most_frequent_words.rename(columns={'unique word count':'max unique word count'})
-    most_frequent_words = most_frequent_words.merge(unique_words)
-    most_frequent_words['relative word count'] = most_frequent_words['unique word count'] / most_frequent_words['max unique word count']
-    most_frequent_words = most_frequent_words[most_frequent_words['relative word count'] > (percentile/100)]
-    print(most_frequent_words)
+    content_words = unique_words[unique_words['lyric'].str not in stopwords_eng]
+    grouped = unique_words.groupby([c for c in unique_words.columns if c not in ['lyric','unique word count']], as_index=False)
+    most_frequent_content_words = grouped.agg({'unique word count':'max'})
+    most_frequent_content_words = most_frequent_content_words.rename(columns={'unique word count':'max unique word count'})
+    most_frequent_content_words = most_frequent_content_words.merge(unique_words)
+    most_frequent_content_words['relative word count'] = most_frequent_content_words['unique word count'] / most_frequent_content_words['max unique word count']
+    most_frequent_content_words = most_frequent_content_words[most_frequent_content_words['relative word count'] > (percentile/100)]
+    print(most_frequent_content_words)
 
 
 if __name__ == '__main__':
