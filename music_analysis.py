@@ -5,6 +5,11 @@ import numpy as np
 import pandas as pd
 import cleaning
 import matplotlib.pyplot as plt
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+# nltk.download('stopwords)')
+# stop_words = set(stopwords.words('english')) # as shown in https://www.geeksforgeeks.org/removing-stop-words-nltk-python/
 
 # Sorts by release date (old to new)
 def sort(df):
@@ -20,6 +25,12 @@ def count_unique(df, by, count_name):
 def wpm(df, word_column, minutes_column):
     df[word_column + ' per minute'] = df[word_column] / df[minutes_column]
     return df
+
+# # uses nltk to tokenize
+# def tokenize_lyrics(df, lyric_column, tokenized_name):
+#     # df[tokenized_name] = df[lyric_column].apply(word_tokenize)
+#     # df[tokenized_name] = df[lyric_column].apply(lambda lyric: word_tokenize(lyric))
+#     df[tokenized_name] = df.apply(lambda item: word_tokenize(item[lyric_column]), axis=1)
 
 
 def main(rap_archive = "rap_archive.zip", api_data = "data-1.csv.gz", output_file=None):
@@ -50,6 +61,10 @@ def main(rap_archive = "rap_archive.zip", api_data = "data-1.csv.gz", output_fil
     # TODO: actually perform analysis
     song_data = count_unique(song_data, 'lyric', 'unique word count')
     song_data = wpm(song_data,'unique word count', 'minutes')
+    print(f"song_data is:\n{song_data}")
+    # song_data = tokenize_lyrics(song_data, 'lyric', 'tokenized_lyric')
+    song_data['tokenized'] = song_data.apply(lambda item: word_tokenize(item['lyric']), axis=1)
+    # print('hi')
     print(f"song_data is:\n{song_data}")
 
     wordy_songs = song_data[song_data['unique word count per minute'] > 450]
