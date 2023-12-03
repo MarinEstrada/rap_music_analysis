@@ -5,12 +5,6 @@ import numpy as np
 import pandas as pd
 import cleaning
 
-# Splits lyric column by word
-def tokenize(df, by):
-    df[by] = df[by].apply(lambda x: x.split())
-    df = df.explode(by)
-    return df
-
 # Joins lyric column after grouping by every other column
 def join_lyrics(df):
     cols = [col for col in df.columns if col != 'lyric']
