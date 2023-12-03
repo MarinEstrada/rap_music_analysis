@@ -105,14 +105,20 @@ def main(rap_archive = "rap_archive.zip", api_data = "data-1.csv.gz", output_fil
     # adri code:
     # song_data = tokenize_lyrics(song_data, 'lyric', 'tokenized_lyric')
     song_data['tokenized'] = song_data.apply(lambda item: word_tokenize(item['lyric']), axis=1) #tokenization of lyrics as seperate column
-    print(f"song_data is:\n{song_data}")
+    # print(f"song_data is:\n{song_data}")
     song_data['tokenized'] = song_data.apply(lambda item: stop_word_removal(item['tokenized']), axis=1) #removes stopwords from tokens
-    print(f"song_data is:\n{song_data}")
+    # print(f"song_data is:\n{song_data}")
     song_data['unique_words'] = song_data.apply(lambda item: set(item['tokenized']), axis=1) #by changing list of tokens to set we get unique words
-    print(f"song_data is:\n{song_data}")
+    # print(f"song_data is:\n{song_data}")
 
-    # boey code:
-    print(lines_data)
+    # boey code: most frequent words
+    percentile = 80
+    most_frequent_words = unique_words.groupby([c for c in unique_words.columns if c not in ['lyric','unique word count']], as_index=False).agg({'unique word count':'max'})
+    most_frequent_words = most_frequent_words.rename(columns={'unique word count':'max unique word count'})
+    most_frequent_words = most_frequent_words.merge(unique_words)
+    most_frequent_words['relative word count'] = most_frequent_words['unique word count'] / most_frequent_words['max unique word count']
+    most_frequent_words = most_frequent_words[most_frequent_words['relative word count'] > (percentile/100)]
+    print(most_frequent_words)
 
 
 if __name__ == '__main__':
