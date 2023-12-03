@@ -138,6 +138,12 @@ def main(input_file=None, output_file=None, client_id=cid, client_secret=secret,
     music_data = pd.read_csv(input_file)
     # print(f"rap_data is:\n{music_data}")
 
+    songs_df = music_data.drop(columns=['lyric'])
+
+    
+
+    # commented out for acquisition using original_songs.csv.gz
+    '''
     songs_df = music_data.drop(columns=['extra','lyric','next lyric'])
     songs_df = songs_df.drop_duplicates()# drop non-unique rows
     # print(f"rap_data with droped columns is:\n{songs_df}")
@@ -172,6 +178,7 @@ def main(input_file=None, output_file=None, client_id=cid, client_secret=secret,
     
     # cleaned df to its own seperate csv for reference
     songs_df.to_csv('df_for_analysis.csv.gz', index=False, compression='gzip')
+    '''
 
 
     # #following new ref vid
@@ -213,6 +220,9 @@ def main(input_file=None, output_file=None, client_id=cid, client_secret=secret,
     # test_df.to_csv('data-1.csv.gz', index=False, compression='gzip')
     # songs_df.to_csv('data-1.csv.gz', index=False, compression='gzip')
     songs_df.to_csv(output_file, index=False, compression='gzip')
+    songs_df = songs_df.merge(music_data, on=['song','artist'], how='inner') #taken from boey's contribution of code
+    songs_df.to_csv("merged_"+ output_file, index=False, compression='gzip')
+
     # music_data.to_csv('test.csv.gz', index=False, compression='gzip')
 
 
