@@ -8,10 +8,13 @@ import matplotlib.pyplot as plt
 import copy
 import nltk
 from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
 nltk.download('stopwords')
 nltk.download('punkt')
+nltk.download('wordnet')
 stopwords_eng = set(stopwords.words('english')) # as shown in https://www.geeksforgeeks.org/removing-stop-words-nltk-python/
+lemmatizer = WordNetLemmatizer()
 
 # Splits string by whitespace
 def split(text):
@@ -37,9 +40,10 @@ def get_unique_words(words_data):
 def wpm(df, col):
     return df[col] / df['minutes']
 
-# takes list of tokens and removes stopwords
+# takes list of tokens and removes stopwords, remaining words are lemmatized
 def stop_word_removal(tokens):
-    return [item for item in tokens if item not in stopwords_eng]
+    # return [item for item in tokens if item not in stopwords_eng]
+    return [lemmatizer.lemmatize(item) for item in tokens if item not in stopwords_eng] #added lemmatization
 
 # # uses nltk to tokenize
 # def tokenize_lyrics(df, lyric_column, tokenized_name):
