@@ -47,7 +47,7 @@ def read_api_data(api_data):
     music_data = music_data[music_data['release_date'].str.len() == 10]
     # music_data['release_date'] = pd.to_datetime(music_data['release_date'], format='mixed')
     music_data['release_date'] = pd.to_datetime(music_data['release_date'], format="%Y-%m-%d")
-    music_data['release_date'] = music_data['release_date'].apply(to_timestamp)
+    # music_data['release_date'] = music_data['release_date'].apply(to_timestamp)
     music_data['minutes'] = music_data['duration_ms'] / 60000
     
     return music_data
@@ -120,8 +120,10 @@ def wpm(df, col):
 def plot(x, y, x_label, y_label, title, fit=None):
     plt.plot(x, y, 'b.', alpha=0.5)
     if fit != None:
-        fit = scipy.stats.linregress(x,y)
-        prediction = x.apply(lambda x : x*fit.slope + fit.intercept)
+        x_timestamp = x.apply(to_timestamp)
+        fit = scipy.stats.linregress(x_timestamp,y)
+        print(f"fit is: {fit}")
+        prediction = x_timestamp.apply(lambda x : x*fit.slope + fit.intercept)
         plt.plot(x, prediction, 'r-', linewidth=3)
     plt.title(title)
     plt.xlabel(x_label)
