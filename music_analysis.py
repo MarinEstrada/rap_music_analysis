@@ -45,7 +45,8 @@ def read_api_data(api_data):
 
     # Parse dates
     music_data = music_data[music_data['release_date'].str.len() == 10]
-    music_data['release_date'] = pd.to_datetime(music_data['release_date'], format='mixed')
+    # music_data['release_date'] = pd.to_datetime(music_data['release_date'], format='mixed')
+    music_data['release_date'] = pd.to_datetime(music_data['release_date'], format="%Y-%m-%d")
     music_data['release_date'] = music_data['release_date'].apply(to_timestamp)
     music_data['minutes'] = music_data['duration_ms'] / 60000
     
