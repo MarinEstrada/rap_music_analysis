@@ -1,9 +1,4 @@
-import os
-import pathlib
-import sys
-import numpy as np
 import pandas as pd
-import cleaning
 
 # Joins lyric column after grouping by every other column
 def join_lyrics(df):
@@ -33,6 +28,7 @@ covers = duplicated_songs
 def duplicated_titles(df):
     return duplicates(df, ['song'])
 
+# Exports lyric data for original songs only (not covers) as csv
 def export_original_songs(input_file, output_file):
     lyric_data = pd.read_csv(input_file)
     lyric_data = lyric_data.drop(lyric_data.columns[0], 'next lyric', axis=1)
