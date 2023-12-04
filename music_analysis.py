@@ -79,7 +79,7 @@ def main(rap_archive = "rap_archive.zip", api_data = "api_original_songs.csv.gz"
     lines_data = song_data
 
     # boey code: get one row per word, for different kinds of words
-    words = tokenization.tokenize(song_data, first_run=True)
+    words = tokenization.tokenize(song_data, first_run=False)
     content_words = word_manipulation.drop_stopwords(words)
     unique_content_words = word_manipulation.get_unique_words(content_words)
 
