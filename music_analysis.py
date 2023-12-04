@@ -12,7 +12,6 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet as wn
-from transformers import pipeline
 nltk.download('stopwords')
 nltk.download('punkt')
 nltk.download('wordnet')
