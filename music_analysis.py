@@ -15,6 +15,7 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
+from nltk.corpus import wordnet as wn
 nltk.download('stopwords')
 nltk.download('punkt')
 nltk.download('wordnet')
@@ -67,7 +68,11 @@ split_ufunc = np.frompyfunc(split, 1, 1)
 
 # Lemmatizes
 def lemmatize(word):
-    return lemmatizer.lemmatize(word)
+    lemmas = wn._morphy(word, "n")
+    if lemmas:
+        return min(lemmas, key=len)
+    return pd.NA
+    # return lemmatizer.lemmatize(word)
 lemmatize_ufunc = np.frompyfunc(lemmatize, 1, 1)
 
 # Uses ufunc to tokenize lyrics and put one token per row
@@ -75,7 +80,18 @@ def tokenize(song_data):
     words = copy.deepcopy(song_data)
     words['lyric'] = split_ufunc(words['lyric'])
     words = words.explode('lyric')
+    
+    originals = copy.deepcopy(words)
+
     words['lyric'] = lemmatize_ufunc(words['lyric'])
+
+    # searching for tokens with no lemma found
+    originals['lemmas'] = words['lyric']
+    originals = originals[originals.isna().any(axis=1)]
+    originals = originals.drop_duplicates(subset=['lyric'])
+    originals['lyric'].to_csv('no_lemma_found.csv', index=False)
+
+    words = words.dropna()
     return words
 
 # Puts only unique words per song on a new row
@@ -139,6 +155,10 @@ def main(rap_archive = "rap_archive.zip", api_data = "api_original_songs.csv.gz"
     song_data = music_data.merge(lyric_data, on=['song','artist'], how='inner')
     # print(f"song_data is:\n{song_data}")
 
+    # look at albums as a whole entity
+    # as each artist has their own style, we do not want the stats to be skewed simply by the prolificness of the artist
+    # song_data = song_data.groupby(['release_date', 'artist'], as_index=False).agg({'lyric':lambda x: ' '.join(x), 'minutes':'sum'})
+
     lines_data = song_data
 
     # boey code: one row per word or unique word
@@ -147,11 +167,9 @@ def main(rap_archive = "rap_archive.zip", api_data = "api_original_songs.csv.gz"
     content_words = drop_stopwords(words)
     unique_content_words = get_unique_words(content_words)
 
-    # boey code: count words & content words
+    # boey code: count words (all/content-only, unique/non-unique)
     song_data = add_wordcount(song_data, words, 'word count')
     song_data = add_wordcount(song_data, content_words, 'content word count')
-    
-    # boey code: count unique words & unique content words
     song_data = add_wordcount(song_data, unique_words.drop('frequency',axis=1), 'unique word count')
     song_data = add_wordcount(song_data, unique_content_words.drop('frequency',axis=1), 'unique content word count')
 
