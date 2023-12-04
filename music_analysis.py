@@ -79,7 +79,8 @@ def read_api_data(api_data):
     # print(f"valid api_data is:\n{music_data}")
 
     music_data = music_data[music_data['release_date'].str.len() == 10]
-    music_data['release_date'] = pd.to_datetime(music_data['release_date'], format='mixed')
+    # music_data['release_date'] = pd.to_datetime(music_data['release_date'], format='mixed')
+    music_data['release_date'] = pd.to_datetime(music_data['release_date'], format="%Y-%m-%d")
     music_data['release_date'] = music_data['release_date'].apply(to_timestamp)
     music_data['minutes'] = music_data['duration_ms'] / 60000
     music_data = music_data.drop('status_code', axis=1)
@@ -94,7 +95,8 @@ def read_lyric_data(rap_archive):
     originals_data = pd.read_csv(originals_archive)
     return originals_data
 
-def main(rap_archive = "rap_archive.zip", api_data = "data-1.csv.gz", output_file=None):
+# def main(rap_archive = "rap_archive.zip", api_data = "data-1.csv.gz", output_file=None):
+def main(rap_archive = "rap_archive.zip", api_data = "api_original_songs.csv.gz", output_file=None):
 
     # TODO: access spotify API
     music_data = read_api_data(api_data)
