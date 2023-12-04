@@ -128,7 +128,8 @@ def plot(x, y, x_label, y_label, title, fit=None):
     # plt.savefig("_".join(title.split()))
     plt.show()
 
-def main(rap_archive = "rap_archive.zip", api_data = "data-1.csv.gz", output_file=None):
+# def main(rap_archive = "rap_archive.zip", api_data = "data-1.csv.gz", output_file=None):
+def main(rap_archive = "rap_archive.zip", api_data = "api_original_songs.csv.gz", output_file=None):
 
     # access spotify API
     music_data = read_api_data(api_data)
