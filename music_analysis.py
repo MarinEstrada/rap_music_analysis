@@ -4,10 +4,13 @@ import pathlib
 import sys
 import numpy as np
 import pandas as pd
+import scipy
 import cleaning
 import matplotlib.pyplot as plt
 import copy
 from scipy import stats
+import seaborn
+seaborn.set()
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
@@ -22,6 +25,40 @@ lemmatizer = WordNetLemmatizer() # as shown in https://www.geeksforgeeks.org/pyt
 def to_timestamp(text):
     return text.timestamp()
 to_timestamp_ufunc = np.frompyfunc(to_timestamp, 1, 1)
+
+# # uses nltk to tokenize
+# def tokenize_lyrics(df, lyric_column, tokenized_name):
+#     # df[tokenized_name] = df[lyric_column].apply(word_tokenize)
+#     # df[tokenized_name] = df[lyric_column].apply(lambda lyric: word_tokenize(lyric))
+#     df[tokenized_name] = df.apply(lambda item: word_tokenize(item[lyric_column]), axis=1)
+
+# Reads API data
+def read_api_data(api_data):
+    # music_data = pd.read_csv(rap_archive)
+    music_data = pd.read_csv(api_data)
+    # print(f"api_data is:\n{music_data}")
+    music_data = music_data[music_data['status_code']==200]
+    # print(f"api_data with succesful API calls:\n{music_data}")
+    music_data = music_data.dropna()
+    music_data = music_data.drop('status_code', axis=1)
+    # print(f"valid api_data is:\n{music_data}")
+
+    # Parse dates
+    music_data = music_data[music_data['release_date'].str.len() == 10]
+    music_data['release_date'] = pd.to_datetime(music_data['release_date'], format='mixed')
+    music_data['release_date'] = music_data['release_date'].apply(to_timestamp)
+    music_data['minutes'] = music_data['duration_ms'] / 60000
+    
+    return music_data
+
+# Reads lyric data from original songs
+def read_lyric_data(rap_archive):
+    first_run = False
+    originals_archive = "original_songs.csv.gz"
+    if (first_run):
+        cleaning.export_original_songs(rap_archive, originals_archive)
+    originals_data = pd.read_csv(originals_archive)
+    return originals_data
 
 # Splits string by whitespace
 def split(text):
@@ -49,10 +86,6 @@ def get_unique_words(words_data):
     unique_words = words.groupby(cols, as_index=False).agg({'frequency':'sum'})
     return unique_words
 
-# Divides a col by the minutes column
-def wpm(df, col):
-    return df[col] / df['minutes']
-
 # takes list of tokens and removes stopwords
 def stop_word_removal(tokens):
     return [item for item in tokens if item not in stopwords_eng]
@@ -63,103 +96,85 @@ def drop_stopword(word):
     return pd.NA
 drop_stopword_ufunc = np.frompyfunc(drop_stopword, 1, 1)
 
-# # uses nltk to tokenize
-# def tokenize_lyrics(df, lyric_column, tokenized_name):
-#     # df[tokenized_name] = df[lyric_column].apply(word_tokenize)
-#     # df[tokenized_name] = df[lyric_column].apply(lambda lyric: word_tokenize(lyric))
-#     df[tokenized_name] = df.apply(lambda item: word_tokenize(item[lyric_column]), axis=1)
+# Returns a copy of 'df' without stopwords (only lexical/content words)
+def drop_stopwords(df):
+    content_words = copy.deepcopy(df)
+    content_words['lyric'] = drop_stopword_ufunc(content_words['lyric'])
+    content_words = content_words.dropna()
+    return content_words
 
-def read_api_data(api_data):
-    # music_data = pd.read_csv(rap_archive)
-    music_data = pd.read_csv(api_data)
-    # print(f"api_data is:\n{music_data}")
-    music_data = music_data[music_data['status_code']==200]
-    # print(f"api_data with succesful API calls:\n{music_data}")
-    music_data = music_data.dropna()
-    # print(f"valid api_data is:\n{music_data}")
+# Adds column to 'df' with the song-wise count of each lyric from 'words'
+def add_wordcount(df, words, col_name):
+    word_count = copy.deepcopy(words)
+    word_count = word_count.groupby([c for c in words.columns if c != 'lyric'], as_index=False).count()
+    word_count = word_count.rename(columns={'lyric':col_name})
+    df = df.merge(word_count)
+    return df
 
-    music_data = music_data[music_data['release_date'].str.len() == 10]
-    # music_data['release_date'] = pd.to_datetime(music_data['release_date'], format='mixed')
-    music_data['release_date'] = pd.to_datetime(music_data['release_date'], format="%Y-%m-%d")
-    music_data['release_date'] = music_data['release_date'].apply(to_timestamp)
-    music_data['minutes'] = music_data['duration_ms'] / 60000
-    music_data = music_data.drop('status_code', axis=1)
-    return music_data
+# Divides a col by the minutes column
+def wpm(df, col):
+    return df[col] / df['minutes']
 
-def read_lyric_data(rap_archive):
-    # read lyric data from original songs
-    first_run = False
-    originals_archive = "original_songs.csv.gz"
-    if (first_run):
-        cleaning.export_original_songs(rap_archive, originals_archive)
-    originals_data = pd.read_csv(originals_archive)
-    return originals_data
+# Plots data with optional best fit line
+def plot(x, y, x_label, y_label, title, fit=None):
+    plt.plot(x, y, 'b.', alpha=0.5)
+    if fit != None:
+        fit = scipy.stats.linregress(x,y)
+        prediction = x.apply(lambda x : x*fit.slope + fit.intercept)
+        plt.plot(x, prediction, 'r-', linewidth=3)
+    plt.title(title)
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    # plt.savefig("_".join(title.split()))
+    plt.show()
 
 # def main(rap_archive = "rap_archive.zip", api_data = "data-1.csv.gz", output_file=None):
 def main(rap_archive = "rap_archive.zip", api_data = "api_original_songs.csv.gz", output_file=None):
 
-    # TODO: access spotify API
+    # access spotify API
     music_data = read_api_data(api_data)
     lyric_data = read_lyric_data(rap_archive)
 
-    # TODO: merge API data and music_data
+    # merge API data and music_data
     song_data = music_data.merge(lyric_data, on=['song','artist'], how='inner')
     # print(f"song_data is:\n{song_data}")
 
     lines_data = song_data
 
-    # TODO: actually perform analysis
-
     # boey code: one row per word or unique word
     words = tokenize(song_data)
     unique_words = get_unique_words(words)
-    # print(f"words dataframe is:\n{words}")
-    # print(f"unique_words dataframe is:\n{unique_words}")
+    content_words = drop_stopwords(words)
+    unique_content_words = get_unique_words(content_words)
 
-    # boey code: content words
-    content_words = copy.deepcopy(words)
-    content_words['lyric'] = drop_stopword_ufunc(content_words['lyric'])
-    content_words = content_words.dropna()
-
-    # boey code: count words
-    word_count = words.groupby([c for c in words.columns if c != 'lyric'], as_index=False).count()
-    word_count = word_count.rename(columns={'lyric':'word count'})
-    song_data = song_data.merge(word_count)
-    # print(f"song_data is:\n{song_data}")
-
-    # boey code: count unique words
-    unique_word_count = words.groupby([c for c in words.columns if c != 'lyric'], as_index=False).agg({'lyric':'nunique'})
-    unique_word_count = unique_word_count.rename(columns={'lyric':'unique word count'})
-    song_data = song_data.merge(unique_word_count)
-    # print(f"song_data is:\n{song_data}")
-
-    # boey code: count content words
-    content_word_count = content_words.groupby([c for c in content_words.columns if c != 'lyric'], as_index=False).count()
-    content_word_count = content_word_count.rename(columns={'lyric':'content word count'})
-    song_data = song_data.merge(content_word_count)
-    # print(f"song_data is:\n{song_data}")
+    # boey code: count words & content words
+    song_data = add_wordcount(song_data, words, 'word count')
+    song_data = add_wordcount(song_data, content_words, 'content word count')
+    
+    # boey code: count unique words & unique content words
+    song_data = add_wordcount(song_data, unique_words.drop('frequency',axis=1), 'unique word count')
+    song_data = add_wordcount(song_data, unique_content_words.drop('frequency',axis=1), 'unique content word count')
 
     # boey code: words and unique words per minute
     song_data['words per minute'] = wpm(song_data, 'word count')
     song_data['unique words per minute'] = wpm(song_data, 'unique word count')
     song_data['lexical density'] = song_data['content word count'] / song_data['word count']
-    # song_data = song_data.sort_values('words per minute')
+    song_data['lexical diversity'] = song_data['unique content word count'] / song_data['content word count']
     song_data = song_data[song_data['words per minute'] <= 450] # prune songs over 450 words/min
-    # print(f"song_data is:\n{song_data}")
+
+    # linear regression: words per minute
+    plot(song_data['release_date'], song_data['words per minute'], 'release date', 'words per minute', 'words per minute by date', True)
+    plot(song_data['release_date'], song_data['lexical density'], 'release date', 'lexical density (content words / total words)', 'lexical density by date', True)
+    plot(song_data['release_date'], song_data['lexical diversity'], 'release date', 'lexical diversity (unique content words / content words)', 'lexical diversity by date', True)
+    plot(song_data['release_date'], song_data['unique words per minute'], 'release date', 'unique words per minute', 'unique words per minute by date', True)
 
     # boey code: most frequent content words per song
     percentile = 75.0
-    unique_content_words = get_unique_words(content_words)
     grouped = unique_content_words.groupby([c for c in unique_content_words.columns if c not in ['lyric','frequency count']], as_index=False)
     unique_content_words['word count rank'] = grouped['frequency'].rank(pct=True)
     top_content_words = unique_content_words[unique_content_words['word count rank'] >= (percentile/100.0)]
     top_content_words = top_content_words.sort_values('word count rank',ascending=True)
     # print(f"top_content_words is:\n{top_content_words}")
-
-    # linear regression: words per minute
-    song_data = song_data.sort_values('release_date')
-    fit = stats.linregress(x=song_data['release_date'], y=song_data['words per minute'])
-    print(fit)
 
     # justin code: sentiment analysis
     # song_data['sentiment score'] <-- 
