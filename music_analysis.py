@@ -1,4 +1,7 @@
+import copy
 import sys
+import time
+from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 import datetime
@@ -15,6 +18,8 @@ nltk.download('punkt')
 nltk.download('wordnet')
 stopwords_eng = set(stopwords.words('english')) # as shown in https://www.geeksforgeeks.org/removing-stop-words-nltk-python/
 lemmatizer = WordNetLemmatizer() # as shown in https://www.geeksforgeeks.org/python-lemmatization-with-nltk/
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+analyzer = SentimentIntensityAnalyzer()
 
 # custom modules
 import original_songs
@@ -41,7 +46,7 @@ def read_api_data(api_data):
     music_data = music_data[music_data['release_date'].str.len() == 10]
     # music_data['release_date'] = pd.to_datetime(music_data['release_date'], format='mixed')
     music_data['release_date'] = pd.to_datetime(music_data['release_date'], format="%Y-%m-%d")
-    # music_data['release_date'] = music_data['release_date'].apply(to_timestamp)
+    music_data['release_date'] = music_data['release_date'].apply(to_timestamp)
     music_data['minutes'] = music_data['duration_ms'] / 60000
     
     return music_data
@@ -59,6 +64,12 @@ def read_lyric_data(rap_archive, first_run = False):
 # Divides a col by the minutes column
 def wpm(df, col):
     return df[col] / df['minutes']
+
+def sentiment(line):
+    score = analyzer.polarity_scores(line)
+    return score
+
+sentiment_ufunc = np.frompyfunc(sentiment, 1, 1)
 
 # def main(rap_archive = "rap_archive.zip", api_data = "data-1.csv.gz", output_file=None):
 def main(rap_archive = "rap_archive.zip", api_data = "api_original_songs.csv.gz", output_file=None):
@@ -78,7 +89,7 @@ def main(rap_archive = "rap_archive.zip", api_data = "api_original_songs.csv.gz"
     # as each artist has their own style, we do not want the stats to be skewed simply by the prolificness of the artist
     # song_data = song_data.groupby(['release_date', 'artist'], as_index=False).agg({'lyric':lambda x: ' '.join(x), 'minutes':'sum'})
 
-    lines_data = song_data
+    lines_data = copy.deepcopy(song_data)
 
     # boey code: get one row per word, for different kinds of words
     words = tokenization.tokenize(song_data, first_run=False)
@@ -116,17 +127,27 @@ def main(rap_archive = "rap_archive.zip", api_data = "api_original_songs.csv.gz"
     # ranked_content_words.to_csv('boey.csv')
 
     #justin code: huggingface for sentiment analysis
-    # song_data['sentiment score'] <-- 
-    sentiment_pipeline = pipeline("sentiment-analysis")
-    #converts dataframe column into string format and passes it into the sentiment analyzer
-    #sentiments = lines_data['lyric'].tolist()
-    #lines_data['sentiment'] = sentiment_pipeline(sentiments)
-    #print(lines_data)
-
+    
+    sentiment = sentiment_ufunc(lines_data['lyric'])
+    sentiment_scores = pd.json_normalize(sentiment)
+    lines_data = pd.concat([lines_data, sentiment_scores], axis=1)
+    lines_data['year'] = lines_data['release_date'].apply(lambda x: datetime.date.fromtimestamp(x).year)
+    lines_data = lines_data.groupby('year',as_index=False).agg({'neg':'mean', 'neu':'mean', 'pos':'mean', 'compound':'mean'})
+    # lines_data = lines_data.groupby([c for c in lines_data.columns if c not in ['neg', 'neu', 'pos', 'compound']],as_index=False).agg({['neg', 'neu', 'pos', 'compound']:'mean'})
+    x = lines_data['year']
+    plt.plot(x, lines_data['neg'], 'r-', linewidth=3)
+    plt.plot(x, lines_data['neu'], 'y-', linewidth=3)
+    plt.plot(x, lines_data['pos'], 'g-', linewidth=3)
+    plt.plot(x, lines_data['compound'], 'b-', linewidth=3)
+    plt.show()
+    exit()
+    
     #aggregation by year
-    lines_data['year'] = lines_data['release_date'].dt.year
     yearly_lines = lines_data.groupby(lines_data['year']).aggregate('lyric').apply(list).reset_index(name = 'all_lyrics')
-    # print(yearly_lines)
+    yearly_lines['sentiment'] = sentiment_ufunc(yearly_lines['all_lyrics'])
+    plt.plot(yearly_lines['year'],yearly_lines['sentiment'])
+    plt.show()
+    plt.clf()
     #something something add sentiment analyzer score on the year
 
 
