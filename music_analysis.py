@@ -1,3 +1,4 @@
+import datetime
 import os
 import pathlib
 import sys
@@ -6,6 +7,7 @@ import pandas as pd
 import cleaning
 import matplotlib.pyplot as plt
 import copy
+from scipy import stats
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
@@ -15,6 +17,11 @@ nltk.download('punkt')
 nltk.download('wordnet')
 stopwords_eng = set(stopwords.words('english')) # as shown in https://www.geeksforgeeks.org/removing-stop-words-nltk-python/
 lemmatizer = WordNetLemmatizer() # as shown in https://www.geeksforgeeks.org/python-lemmatization-with-nltk/
+
+# Parses string to timestamp
+def to_timestamp(text):
+    return text.timestamp()
+to_timestamp_ufunc = np.frompyfunc(to_timestamp, 1, 1)
 
 # Splits string by whitespace
 def split(text):
@@ -53,8 +60,7 @@ def stop_word_removal(tokens):
 def drop_stopword(word):
     if word not in stopwords_eng:
         return word
-    else:
-        return pd.NA
+    return pd.NA
 drop_stopword_ufunc = np.frompyfunc(drop_stopword, 1, 1)
 
 # # uses nltk to tokenize
@@ -63,9 +69,7 @@ drop_stopword_ufunc = np.frompyfunc(drop_stopword, 1, 1)
 #     # df[tokenized_name] = df[lyric_column].apply(lambda lyric: word_tokenize(lyric))
 #     df[tokenized_name] = df.apply(lambda item: word_tokenize(item[lyric_column]), axis=1)
 
-
-def main(rap_archive = "rap_archive.zip", api_data = "data-1.csv.gz", output_file=None):
-
+def read_api_data(api_data):
     # music_data = pd.read_csv(rap_archive)
     music_data = pd.read_csv(api_data)
     # print(f"api_data is:\n{music_data}")
@@ -74,22 +78,33 @@ def main(rap_archive = "rap_archive.zip", api_data = "data-1.csv.gz", output_fil
     music_data = music_data.dropna()
     # print(f"valid api_data is:\n{music_data}")
 
-    # TODO: access spotify API
+    music_data = music_data[music_data['release_date'].str.len() == 10]
+    music_data['release_date'] = pd.to_datetime(music_data['release_date'], format='mixed')
+    music_data['release_date'] = music_data['release_date'].apply(to_timestamp)
+    music_data['minutes'] = music_data['duration_ms'] / 60000
+    music_data = music_data.drop('status_code', axis=1)
+    return music_data
 
+def read_lyric_data(rap_archive):
     # read lyric data from original songs
     first_run = False
     originals_archive = "original_songs.csv.gz"
     if (first_run):
         cleaning.export_original_songs(rap_archive, originals_archive)
     originals_data = pd.read_csv(originals_archive)
+    return originals_data
+
+def main(rap_archive = "rap_archive.zip", api_data = "data-1.csv.gz", output_file=None):
+
+    # TODO: access spotify API
+    music_data = read_api_data(api_data)
+    lyric_data = read_lyric_data(rap_archive)
 
     # TODO: merge API data and music_data
-    music_data = music_data.drop('status_code', axis=1)
-    song_data = music_data.merge(originals_data, on=['song','artist'], how='inner')
-    song_data['minutes'] = song_data['duration_ms'] / 60000
+    song_data = music_data.merge(lyric_data, on=['song','artist'], how='inner')
+    # print(f"song_data is:\n{song_data}")
 
     lines_data = song_data
-    # print(f"song_data is:\n{song_data}")
 
     # TODO: actually perform analysis
 
@@ -130,7 +145,7 @@ def main(rap_archive = "rap_archive.zip", api_data = "data-1.csv.gz", output_fil
     song_data = song_data[song_data['words per minute'] <= 450] # prune songs over 450 words/min
     # print(f"song_data is:\n{song_data}")
 
-    # boey code: most frequent content words
+    # boey code: most frequent content words per song
     percentile = 75.0
     unique_content_words = get_unique_words(content_words)
     grouped = unique_content_words.groupby([c for c in unique_content_words.columns if c not in ['lyric','frequency count']], as_index=False)
@@ -138,6 +153,11 @@ def main(rap_archive = "rap_archive.zip", api_data = "data-1.csv.gz", output_fil
     top_content_words = unique_content_words[unique_content_words['word count rank'] >= (percentile/100.0)]
     top_content_words = top_content_words.sort_values('word count rank',ascending=True)
     # print(f"top_content_words is:\n{top_content_words}")
+
+    # linear regression: words per minute
+    song_data = song_data.sort_values('release_date')
+    fit = stats.linregress(x=song_data['release_date'], y=song_data['words per minute'])
+    print(fit)
 
     # justin code: sentiment analysis
     # song_data['sentiment score'] <-- 
