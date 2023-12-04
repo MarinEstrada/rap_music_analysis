@@ -15,6 +15,7 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
+from transformers import pipeline #Justin: huggingface for sentiment analysis
 nltk.download('stopwords')
 nltk.download('punkt')
 nltk.download('wordnet')
@@ -179,8 +180,19 @@ def main(rap_archive = "rap_archive.zip", api_data = "api_original_songs.csv.gz"
     top_content_words = top_content_words.sort_values('word count rank',ascending=True)
     # print(f"top_content_words is:\n{top_content_words}")
 
-    # justin code: sentiment analysis
+    #justin code: huggingface for sentiment analysis
     # song_data['sentiment score'] <-- 
+    sentiment_pipeline = pipeline("sentiment-analysis")
+    #converts dataframe column into string format and passes it into the sentiment analyzer
+    #sentiments = lines_data['lyric'].tolist()
+    #lines_data['sentiment'] = sentiment_pipeline(sentiments)
+    #print(lines_data)
+
+    #aggregation by year
+    lines_data['year'] = lines_data['release_date'].dt.year
+    yearly_lines = lines_data.groupby(lines_data['year']).aggregate('lyric').apply(list).reset_index(name = 'all_lyrics')
+    # print(yearly_lines)
+    #something something add sentiment analyzer score on the year
 
 
 if __name__ == '__main__':
