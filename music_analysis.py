@@ -8,6 +8,7 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
+from nltk.corpus import wordnet as wn
 nltk.download('stopwords')
 nltk.download('punkt')
 nltk.download('wordnet')
@@ -66,6 +67,10 @@ def main(rap_archive = "rap_archive.zip", api_data = "api_original_songs.csv.gz"
 
     # merge API data and music_data
     song_data = music_data.merge(lyric_data, on=['song','artist'], how='inner')
+
+    # look at albums as a whole entity
+    # as each artist has their own style, we do not want the stats to be skewed simply by the prolificness of the artist
+    # song_data = song_data.groupby(['release_date', 'artist'], as_index=False).agg({'lyric':lambda x: ' '.join(x), 'minutes':'sum'})
 
     # look at albums as a whole entity
     # as each artist has their own style, we do not want the stats to be skewed simply by the prolificness of the artist
