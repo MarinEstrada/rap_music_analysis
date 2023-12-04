@@ -9,6 +9,7 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet as wn
+from transformers import pipeline #Justin: huggingface for sentiment analysis
 nltk.download('stopwords')
 nltk.download('punkt')
 nltk.download('wordnet')
@@ -38,8 +39,9 @@ def read_api_data(api_data):
 
     # Parse dates
     music_data = music_data[music_data['release_date'].str.len() == 10]
-    music_data['release_date'] = pd.to_datetime(music_data['release_date'], format='mixed')
-    music_data['release_date'] = music_data['release_date'].apply(to_timestamp)
+    # music_data['release_date'] = pd.to_datetime(music_data['release_date'], format='mixed')
+    music_data['release_date'] = pd.to_datetime(music_data['release_date'], format="%Y-%m-%d")
+    # music_data['release_date'] = music_data['release_date'].apply(to_timestamp)
     music_data['minutes'] = music_data['duration_ms'] / 60000
     
     return music_data
@@ -113,8 +115,19 @@ def main(rap_archive = "rap_archive.zip", api_data = "api_original_songs.csv.gz"
     # ranked_content_words = ranked_content_words[ranked_content_words['rank'] <= 5]
     # ranked_content_words.to_csv('boey.csv')
 
-    # justin code: sentiment analysis
+    #justin code: huggingface for sentiment analysis
     # song_data['sentiment score'] <-- 
+    sentiment_pipeline = pipeline("sentiment-analysis")
+    #converts dataframe column into string format and passes it into the sentiment analyzer
+    #sentiments = lines_data['lyric'].tolist()
+    #lines_data['sentiment'] = sentiment_pipeline(sentiments)
+    #print(lines_data)
+
+    #aggregation by year
+    lines_data['year'] = lines_data['release_date'].dt.year
+    yearly_lines = lines_data.groupby(lines_data['year']).aggregate('lyric').apply(list).reset_index(name = 'all_lyrics')
+    # print(yearly_lines)
+    #something something add sentiment analyzer score on the year
 
 
 if __name__ == '__main__':
