@@ -36,3 +36,14 @@ def add_wordcount(df, words, col_name):
     word_count = word_count.rename(columns={'lyric':col_name})
     df = df.merge(word_count)
     return df
+
+# Chunks a line into 512-token elements
+# def chunk(line):
+#     words = np.array(line.split())
+#     size = 200
+#     if (words.shape[0] > size):
+#         padded = np.concatenate((words, np.zeros(size - (words.shape[0] % size))), axis=None)
+#         chunks = np.reshape(padded, (-1, size))
+#         chunks = np.apply_along_axis(' '.join, 1, chunks)
+#         return chunks
+#     return [line]
