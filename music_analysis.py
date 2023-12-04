@@ -126,7 +126,7 @@ def plot(x, y, x_label, y_label, title, fit=None):
     plt.title(title)
     plt.xlabel(x_label)
     plt.ylabel(y_label)
-    # plt.savefig("_".join(title.split()))
+    plt.savefig("output_plots/"+"_".join(title.split()))
     plt.show()
 
 # def main(rap_archive = "rap_archive.zip", api_data = "data-1.csv.gz", output_file=None):
