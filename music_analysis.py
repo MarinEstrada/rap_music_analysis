@@ -134,14 +134,14 @@ def main(rap_archive = "rap_archive.zip", api_data = "api_original_songs.csv.gz"
     lines_data = lines_data.groupby('year',as_index=False).agg({'neg':'mean', 'neu':'mean', 'pos':'mean', 'compound':'mean'})
     # lines_data = lines_data.groupby([c for c in lines_data.columns if c not in ['neg', 'neu', 'pos', 'compound']],as_index=False).agg({['neg', 'neu', 'pos', 'compound']:'mean'})
     x = lines_data['year']
+    plt.xlabel("Date (Years)")
+    plt.ylabel("Sentiment Score")
     plt.plot(x, lines_data['neg'], 'r-', linewidth=3)
     plt.plot(x, lines_data['neu'], 'y-', linewidth=3)
     plt.plot(x, lines_data['pos'], 'g-', linewidth=3)
     plt.plot(x, lines_data['compound'], 'b-', linewidth=3)
-
+    plt.legend(['neg', 'neu', 'pos', 'compound'], bbox_to_anchor =(0.75, 1.15), ncol = 4)
     #plt.title("")
-    plt.xlabel("Date (Years)")
-    plt.ylabel("Sentiment Score")
     #plt.show()
     plt.savefig("sentiment")
     exit()
