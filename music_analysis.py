@@ -138,6 +138,10 @@ def main(rap_archive = "rap_archive.zip", api_data = "api_original_songs.csv.gz"
     plt.plot(x, lines_data['neu'], 'y-', linewidth=3)
     plt.plot(x, lines_data['pos'], 'g-', linewidth=3)
     plt.plot(x, lines_data['compound'], 'b-', linewidth=3)
+
+    #plt.title("")
+    plt.xlabel("Date (Years)")
+    plt.ylabel("Sentiment Score")
     #plt.show()
     plt.savefig("sentiment")
     exit()
