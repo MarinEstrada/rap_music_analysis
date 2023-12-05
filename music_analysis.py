@@ -138,7 +138,8 @@ def main(rap_archive = "rap_archive.zip", api_data = "api_original_songs.csv.gz"
     plt.plot(x, lines_data['neu'], 'y-', linewidth=3)
     plt.plot(x, lines_data['pos'], 'g-', linewidth=3)
     plt.plot(x, lines_data['compound'], 'b-', linewidth=3)
-    plt.show()
+    #plt.show()
+    plt.savefig("sentiment")
     exit()
     
     #aggregation by year
@@ -147,7 +148,6 @@ def main(rap_archive = "rap_archive.zip", api_data = "api_original_songs.csv.gz"
     plt.plot(yearly_lines['year'],yearly_lines['sentiment'])
     plt.show()
     plt.clf()
-    #something something add sentiment analyzer score on the year
 
 
 if __name__ == '__main__':
