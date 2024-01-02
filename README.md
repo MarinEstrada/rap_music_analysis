@@ -12,7 +12,7 @@ Inspired by critismims of new school rap compared to old school rap (https://the
 
 Criticisms around lyrics: “repetitive chants”, “"sound identical"; "same beats and lyrics", “decline of lyricism”, “simplistic styles”
 
-To use our program to acquqire data using spoitify's API, ensure you have installed spotipy and run the command:
+To use our program to acquqire data using spoitify's API, ensure you have installed spotipy and and updated the client_id & client_secret in the ".env" folder using your own spotify api key. Then run the command:
 
 ```python3 acquire_song_data.py original_songs.csv.gz example_output_file.csv.gz``` to have results saved in example_output_file.csv.gz
 
